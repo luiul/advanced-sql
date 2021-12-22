@@ -29,7 +29,13 @@ Collection of advanced SQL from different exercises for reference.
   - [4.3. Exercise 3](#43-exercise-3)
   - [4.4. Exercise 4](#44-exercise-4)
   - [4.5. Exercise 5](#45-exercise-5)
-- [5. Solutions to Codility Exercise](#5-solutions-to-codility-exercise)
+  - [4.6. Exercise 5](#46-exercise-5)
+  - [4.7. Exercise 6](#47-exercise-6)
+  - [4.8. Exercise 7](#48-exercise-7)
+  - [4.9. Exercise 9](#49-exercise-9)
+- [5. Misc Notes](#5-misc-notes)
+  - [5.1. Misc Notes from Revision](#51-misc-notes-from-revision)
+- [6. Solutions to Codility Exercise](#6-solutions-to-codility-exercise)
 
 # 1. SQL Window Function Part 1
 
@@ -849,7 +855,369 @@ from island_id
 order by login_date, island_head
 ```
 
-# 5. Solutions to Codility Exercise
+## 4.6. Exercise 5
+
+```sql
+-- Query 5:
+
+-- From the login_details table, fetch the users who logged in consecutively 3 or more times.
+
+--Table Structure:
+
+-- drop table if exists login_details;
+create table login_details(
+login_id int primary key,
+user_name varchar(50) not null,
+login_date date);
+
+delete from login_details;
+insert into login_details values
+(101, 'Michael', current_date),
+(102, 'James', current_date),
+(103, 'Stewart', current_date+1),
+(104, 'Stewart', current_date+1),
+(105, 'Stewart', current_date+1),
+(106, 'Jimmy', current_date+2),
+(107, 'Michael', current_date+2),
+(108, 'Stewart', current_date+3),
+(109, 'Stewart', current_date+3),
+(110, 'James', current_date+4),
+(111, 'James', current_date+4),
+(112, 'James', current_date+5),
+(113, 'James', current_date+6);
+```
+
+Solution:
+
+```sql
+with l as (
+	select *, lag(user_name) over w as prev_user1, lag(user_name,2) over w as prev_user2
+	from login_details
+	window w as (order by login_date, login_id)
+)
+
+select *
+from l
+where user_name = prev_user1 and prev_user1 = prev_user2
+```
+
+Alternative solution:
+
+```sql
+with rep as (
+	select
+		*,
+		case
+			when lag(user_name) over (order by login_date) = user_name then 'repeat'
+			else 'not repeat'
+		end as rep
+	from login_details
+), cume_rep as (
+	select
+		*,
+		case
+			when rep = 'repeat' and lag(rep) over (order by login_date) = rep then 1
+			else 0
+		end as cume_rep
+	from rep
+)
+
+select *
+from cume_rep
+where cume_rep = 1
+```
+
+Better alternative solution. This solution also counts the number of consecutive logins by the user.
+
+```sql
+with rep as (
+	select
+		*,
+		case
+			when lag(user_name) over(order by login_date) = user_name then 1
+			else 0
+		end as rep
+	from login_details
+), island_head as (
+	select
+		*,
+		case
+			when
+				rep = 0 and lead(rep) over(order by login_date) = 1 then login_id
+		end as island_head
+	from rep
+), island_id as(
+	select
+		*,
+		case
+			when rep = 1 then max(island_head) over(order by login_date)
+			when rep = 0 then island_head
+		end as island_id
+	from island_head
+)
+
+select
+	*,
+	count(island_id) over(partition by island_id order by login_date rows between unbounded preceding and unbounded following)
+from island_id
+order by login_date, island_head
+```
+
+To make the result set more compact:
+
+```sql
+with rep as (
+	select
+		*,
+		case
+			when lag(user_name) over(order by login_date) = user_name then 1
+			else 0
+		end as rep
+	from login_details
+), island_head as (
+	select
+		*,
+		case
+			when
+				rep = 0 and lead(rep) over(order by login_date) = 1 then login_id
+		end as island_head
+	from rep
+), island_id as(
+	select
+		*,
+		case
+			when rep = 1 then max(island_head) over(order by login_date)
+			when rep = 0 then island_head
+		end as island_id
+	from island_head
+), island as(
+	select
+		*,
+		count(island_id) over(partition by island_id order by login_date rows between unbounded preceding and unbounded following) as consecutive_logins
+	from island_id
+)
+
+select  island_id, consecutive_logins, user_name
+from island
+where consecutive_logins != 0
+group by island_id, consecutive_logins, user_name
+order by island_id
+```
+
+## 4.7. Exercise 6
+
+```sql
+-- Query 6:
+-- From the students table, write a SQL query to interchange the adjacent student names.
+-- Note: If there are no adjacent student then the student name should stay the same.
+--Table Structure:
+
+-- drop table if exists students;
+create table students
+(
+id int primary key,
+student_name varchar(50) not null
+);
+insert into students values
+(1, 'James'),
+(2, 'Michael'),
+(3, 'George'),
+(4, 'Stewart'),
+(5, 'Robin');
+
+-- select * from students;
+```
+
+Solution:
+
+```sql
+select
+	*,
+	case
+		when id % 2 = 1 then lead(student_name,1,student_name) over()
+		when id % 2 = 0 then lag(student_name,1,student_name) over()
+	end as new_student_name
+from students
+```
+
+## 4.8. Exercise 7
+
+```sql
+-- Query 7:
+-- From the weather table, fetch all the records when London had extremely cold temperature for 3 consecutive days or more.
+-- Note: Weather is considered to be extremely cold then its temperature is less than zero.
+
+--Table Structure:
+-- drop table if exists weather;
+create table weather
+(
+id int,
+city varchar(50),
+temperature int,
+day date
+);
+delete from weather;
+insert into weather values
+(1, 'London', -1, to_date('2021-01-01','yyyy-mm-dd')),
+(2, 'London', -2, to_date('2021-01-02','yyyy-mm-dd')),
+(3, 'London', 4, to_date('2021-01-03','yyyy-mm-dd')),
+(4, 'London', 1, to_date('2021-01-04','yyyy-mm-dd')),
+(5, 'London', -2, to_date('2021-01-05','yyyy-mm-dd')),
+(6, 'London', -5, to_date('2021-01-06','yyyy-mm-dd')),
+(7, 'London', -7, to_date('2021-01-07','yyyy-mm-dd')),
+(8, 'London', 5, to_date('2021-01-08','yyyy-mm-dd'));
+
+-- select * from weather;
+```
+
+Solution:
+
+```sql
+with
+streak as (
+  select *,
+	case
+		when temperature < 0 and lag(temperature) over (order by id) >= 0 then id -- head (does consider first record)
+		when temperature < 0 and lead(temperature) over (order by id) < 0 then 1 -- body
+		when temperature < 0 and lead(temperature) over (order by id) >= 0 then 1 -- tail
+		when temperature < 0 then 1 --handles the last record
+	end as streak
+  from weather),
+island_id as (
+	select
+		*,
+		case
+			when streak is not null then max(streak) over(order by id)
+		end as island_id
+		from streak),
+island_size as (
+	select
+		*,
+		count(island_id) over(partition by island_id order by id rows between unbounded preceding and unbounded following) as island_size
+	from island_id
+)
+
+select id, city, temperature, day, island_size
+from island_size
+where island_size >= 3
+order by id
+```
+
+## 4.9. Exercise 9
+
+We skipped exercise 9 because the task was not clear.
+
+```sql
+-- Query 9:
+-- Find the top 2 accounts with the maximum number of unique patients on a monthly basis.
+-- Note: Prefer the account if with the least value in case of same number of unique patients
+
+--Table Structure:
+
+-- drop table if exists patient_logs;
+create table patient_logs
+(
+  account_id int,
+  date date,
+  patient_id int
+);
+
+insert into patient_logs values (1, to_date('02-01-2020','dd-mm-yyyy'), 100);
+insert into patient_logs values (1, to_date('27-01-2020','dd-mm-yyyy'), 200);
+insert into patient_logs values (2, to_date('01-01-2020','dd-mm-yyyy'), 300);
+insert into patient_logs values (2, to_date('21-01-2020','dd-mm-yyyy'), 400);
+insert into patient_logs values (2, to_date('21-01-2020','dd-mm-yyyy'), 300);
+insert into patient_logs values (2, to_date('01-01-2020','dd-mm-yyyy'), 500);
+insert into patient_logs values (3, to_date('20-01-2020','dd-mm-yyyy'), 400);
+insert into patient_logs values (1, to_date('04-03-2020','dd-mm-yyyy'), 500);
+insert into patient_logs values (3, to_date('20-01-2020','dd-mm-yyyy'), 450);
+
+select * from patient_logs;
+```
+
+Solution:
+
+```sql
+with dp as
+  (select distinct to_char(date, 'month') as month,
+                   account_id,
+                   patient_id
+   from patient_logs
+   order by month),
+     c as
+  (select month,
+          account_id,
+          count(account_id) as c
+   from dp
+   group by month, account_id),
+     r as
+  (select *,
+          rank() over(partition by month order by c desc, account_id) as rnk
+   from c)
+select *
+from r
+where rnk < 3
+order by month, rnk
+```
+
+# 5. Misc Notes
+
+- [SQL Cheat Sheet](https://www.sqltutorial.org/wp-content/uploads/2016/04/SQL-cheat-sheet.pdf):
+  - `limit` n `offset` m: skip m row and return the next n rows.
+- Use column names `create_date` (date) and `last_update` (timestamp without timezone).
+- A **database** is a collection of tables. **Tables** contain rows and columns, where the rows are known as records and the columns are known as fields. A **column** is a set of data values of a particular type, one value for each row of the database. A **row** represents a single data item in a table, and every row in the table has the same structure.
+- [Single vs Double Quotes](https://stackoverflow.com/questions/41396195/what-is-the-difference-between-single-quotes-and-double-quotes-in-postgresql): **Double quotes** are for names of **tables** or **fields**. Sometimes You can omit them. The **single quotes** are for **string constants**. This is the SQL standard. In the verbose form, your query looks like this:
+
+```sql
+select * from "table1" where "column1"='name1';
+```
+
+- SQL `COUNT` function is the simplest function and very useful in counting the number of records, which are expected to be returned by a SELECT statement.
+- [SQL SELECT with DISTINCT on multiple columns](https://www.w3resource.com/sql/select-statement/queries-with-distinct-multiple-columns.php)
+- Additional PgSQL keywords and functions:
+  - length()
+  - offset
+- [PgSQL Pattern Matching](https://www.postgresql.org/docs/13/functions-matching.html): Be wary of accepting regular-expression search patterns from hostile sources. If you must do so, it is advisable to impose a statement timeout.
+Searches using `SIMILAR TO` patterns have the same security hazards, since `SIMILAR TO` provides many of the same capabilities as POSIX-style regular expressions.
+`LIKE` searches, being much simpler than the other two options, are safer to use with possibly-hostile pattern sources.
+- [W3 SQL Tutorial](https://www.w3schools.com/sql/default.asp)
+- [Full Text Search PostgreSQL](https://www.youtube.com/watch?v=szfUbzsKvtE)
+- [Learn PostgreSQL Tutorial - Full Course for Beginners](https://www.youtube.com/watch?v=qw--VYLpxG4)
+- [Official Tutorials and Other Resources](https://www.postgresql.org/docs/online-resources/)
+- [EDB Offer](https://www.enterprisedb.com/training/free-postgres-training)
+- [Tutorials point](https://www.tutorialspoint.com/postgresql/)
+- [Show all tables](https://www.postgresqltutorial.com/postgresql-show-tables/):
+
+```sql
+SELECT * FROM pg_catalog.pg_tables
+WHERE schemaname != 'pg_catalog' AND
+      schemaname != 'information_schema';
+```
+
+- [A Visual Explanation of SQL Joins](https://blog.codinghorror.com/a-visual-explanation-of-sql-joins/)
+- [Join (SQL) Wiki](https://en.wikipedia.org/wiki/Join_(SQL))
+- [Table Covert Online](https://tableconvert.com/)
+- [Math Symbols List](https://www.rapidtables.com/math/symbols/Basic_Math_Symbols.html)
+- [Casting columns to date](https://stackoverflow.com/questions/5875712/postgresql-select-something-where-date-01-01-11)
+- [Transpose Results](https://stackoverflow.com/questions/23060256/postgres-transpose-rows-to-columns)
+- [Dollar Quoting](https://stackoverflow.com/questions/12144284/what-are-used-for-in-pl-pgsql)
+- [Delete duplicate records](https://stackoverflow.com/questions/6583916/delete-duplicate-rows-from-small-table)
+- [Creating multiple tables with sqlite3](https://gist.github.com/iampramodyadav/793ec2b0ea71c3bcbfd6deea636907e2)
+
+## 5.1. Misc Notes from Revision
+
+- `not` keyword appears before the condition
+- `order by`-columns also appears in `select`-column
+- if we `group by` -> `select`-columns appear in:
+  - `group by`-statement OR
+  - are in an aggregate function
+- column in `select` -> column in `group by`
+- aggregate function appear in:
+  - `select` OR
+  - `having`
+
+
+# 6. Solutions to Codility Exercise
 
 ```sql
 select distinct(event_type), nth_value(delta, 1) over(partition by event_type) as value
