@@ -10,31 +10,31 @@ Collection of advanced SQL from different exercises for reference.
 ## TOC
 <!-- toc here -->
 - [1. SQL Window Function Part 1](#1-sql-window-function-part-1)
-  - [1.1. Fundamentals, the Over Clause and Partition By](#11-fundamentals-the-over-clause-and-partition-by)
-  - [1.2. Other examples and Row Number and Order By (inside Over Clause)](#12-other-examples-and-row-number-and-order-by-inside-over-clause)
-  - [1.3. Window Functions: Rank, Dense Rank](#13-window-functions-rank-dense-rank)
-  - [1.4. Window Functions: Lead and Lag](#14-window-functions-lead-and-lag)
+	- [1.1. Fundamentals, the Over Clause and Partition By](#11-fundamentals-the-over-clause-and-partition-by)
+	- [1.2. Other examples and Row Number and Order By (inside Over Clause)](#12-other-examples-and-row-number-and-order-by-inside-over-clause)
+	- [1.3. Window Functions: Rank, Dense Rank](#13-window-functions-rank-dense-rank)
+	- [1.4. Window Functions: Lead and Lag](#14-window-functions-lead-and-lag)
 - [2. SQL Window Function Part 2](#2-sql-window-function-part-2)
-  - [2.1. First and Last Value](#21-first-and-last-value)
-  - [2.2. Frame Clause](#22-frame-clause)
-  - [2.3. Windows Clause](#23-windows-clause)
-  - [2.4. N-th Value](#24-n-th-value)
-  - [2.5. Ntile](#25-ntile)
-  - [2.6. Cumulative Distribution Cume_Dist](#26-cumulative-distribution-cume_dist)
-  - [2.7. Percent Rank](#27-percent-rank)
+	- [2.1. First and Last Value](#21-first-and-last-value)
+	- [2.2. Frame Clause](#22-frame-clause)
+	- [2.3. Windows Clause](#23-windows-clause)
+	- [2.4. N-th Value](#24-n-th-value)
+	- [2.5. Ntile](#25-ntile)
+	- [2.6. Cumulative Distribution Cume_Dist](#26-cumulative-distribution-cume_dist)
+	- [2.7. Percent Rank](#27-percent-rank)
 - [3. SQL With Clause and CTE (Common Table Expression) or Sub-Query Factoring](#3-sql-with-clause-and-cte-common-table-expression-or-sub-query-factoring)
 - [4. Practice Complex SQL Queries](#4-practice-complex-sql-queries)
-  - [4.1. Exercise 1](#41-exercise-1)
-  - [4.2. Exercise 2](#42-exercise-2)
-  - [4.3. Exercise 3](#43-exercise-3)
-  - [4.4. Exercise 4](#44-exercise-4)
-  - [4.5. Exercise 5](#45-exercise-5)
-  - [4.6. Exercise 5](#46-exercise-5)
-  - [4.7. Exercise 6](#47-exercise-6)
-  - [4.8. Exercise 7](#48-exercise-7)
-  - [4.9. Exercise 9](#49-exercise-9)
+	- [4.1. Exercise 1](#41-exercise-1)
+	- [4.2. Exercise 2](#42-exercise-2)
+	- [4.3. Exercise 3](#43-exercise-3)
+	- [4.4. Exercise 4](#44-exercise-4)
+	- [4.5. Exercise 5](#45-exercise-5)
+	- [4.6. Exercise 6](#46-exercise-6)
+	- [4.7. Exercise 7](#47-exercise-7)
+	- [4.8. Exercise 9](#48-exercise-9)
 - [5. Misc Notes](#5-misc-notes)
-  - [5.1. Misc Notes from Revision](#51-misc-notes-from-revision)
+	- [5.1. Misc Notes from Revision](#51-misc-notes-from-revision)
+	- [5.2. General Syntax:](#52-general-syntax)
 - [6. Solutions to Codility Exercise](#6-solutions-to-codility-exercise)
 
 # 1. SQL Window Function Part 1
@@ -42,7 +42,7 @@ Collection of advanced SQL from different exercises for reference.
 ## 1.1. Fundamentals, the Over Clause and Partition By
 From [SQL Window Function](https://www.youtube.com/watch?v=Ww71knvhQ-s). [Documentation on Window Function](https://www.postgresql.org/docs/current/tutorial-window.html). [Documentation on Window Functions](https://www.postgresql.org/docs/8.4/functions-window.html).
 
-A window function performs a calculation across a set of table rows that are somehow related to the current row. This is comparable to the type of calculation that can be done with an aggregate function. However, window functions do not cause rows to become grouped into a single output row like non-window aggregate calls would. Instead, the rows retain their separate identities. For example these queries:
+A window function performs a calculation across a set of (table) rows that are somehow related to the current row. This is comparable to the type of calculation that can be done with an aggregate function. However, window functions do not cause rows to become grouped into a single output row like non-window aggregate calls would. Instead, the rows retain their separate identities. For example these queries:
 
 ```sql
 select max(salary) as max_salary
@@ -68,7 +68,7 @@ from employee as e
 -- shows max salary per deparment in addition to employee data
 ```
 
-Notes that the  rows considered by a window function are those of the “*virtual table*” produced by the query's `FROM` clause (as filtered by its `WHERE`, `GROUP BY`, and `HAVING` clauses if any). For example, a row removed because it does not meet the WHERE condition is not seen by any window function.
+Note that the  rows considered by a window function are those of the “*virtual table*” produced by the query's `FROM` clause (as filtered by its `WHERE`, `GROUP BY`, and `HAVING` clauses if any). For example, a row removed because it does not meet the `WHERE` condition is **not** seen by any window function.
 
 ## 1.2. Other examples and Row Number and Order By (inside Over Clause)
 
@@ -84,7 +84,7 @@ from employee e
 -- gives each record per department an identifier
 ```
 
-Note that You can also control the order in which rows are processed by window functions using ORDER BY within OVER. (The window ORDER BY does not even have to match the order in which the rows are output.) Here is an example:
+Note that You can also control the order in which rows are processed by window functions using ORDER BY within OVER. (The window ORDER BY does not even have to match the order in which the rows are returned). For example: 
 
 ```sql
 SELECT depname, empno, salary, rank() OVER (PARTITION BY depname ORDER BY salary DESC)
@@ -105,7 +105,7 @@ We use this query as a subquery to fetch the first 2 employees from each departm
 select *
 from
   (select e.*, row_number() over(partition by dept_name order by emp_id) as rn from employee e) sq
-where hq.rn < 3
+where sq.rn < 3
 ```
 
 ## 1.3. Window Functions: Rank, Dense Rank
@@ -134,10 +134,10 @@ Alternative:
 ```sql
 select e.*, rank() over w as rnk, dense_rank() over w as dense_rnk
 from employee e
-window w as over(partition by dept_name order by salary desc)
+window w as (partition by dept_name order by salary desc)
 ```
 
-Note that when a query involves multiple window functions, it is possible to write out each one with a separate OVER clause, but this is duplicative and error-prone if the same windowing behavior is wanted for several functions. Instead, each windowing behavior can be named in a WINDOW clause and then referenced in OVER. For example:
+Note that when a query involves multiple window functions, it is possible to write out each one with a separate `OVER` clause, but this is duplicative and error-prone if the same windowing behavior is wanted for several functions. Instead, each windowing behavior can be named in a `WINDOW` clause and then referenced in `OVER`. For example:
 
 ```sql
 SELECT sum(salary) OVER w, avg(salary) OVER w
@@ -187,33 +187,21 @@ Another example from our database:
 
 ```sql
 select
-	p.*,
-	lag(amount) over w1 as prev_amount,
-	case
-		when amount > lag(amount) over w2 then 'Higher than previous amount'
-		when amount < lag(amount) over w2 then 'Lower than previous amount'
-		when lag(amount) over w2  is null then 'No info'
-		else 'The same as previous amount'
-	end as amount_range
-from payment p
-window w1 as (partition by customer_id order by payment_date), w2 as (partition by customer_id order by payment_date)
--- note that w1 and w2 are identical
-```
-
-The same example more concise:
-
-```sql
-select
-	p.*,
-	lag(amount) over w as prev_amount,
-	case
-		when amount > lag(amount) over w then 'Higher than previous amount'
-		when amount < lag(amount) over w then 'Lower than previous amount'
-		when lag(amount) over w  is null then 'No info'
-		else 'The same as previous amount'
-	end as amount_range
-from payment p
-window w as (partition by customer_id order by payment_date)
+    p.payment_id,
+    p.amount as current_amount,
+    lag(amount) over w as prev_amount,
+    case
+        when amount > lag(amount) over w then 'Higher than previous amount'
+        when amount < lag(amount) over w then 'Lower than previous amount'
+        when lag(amount) over w is null then 'No info'
+        else 'The same as previous amount'
+    end as amount_range
+from
+    payment p window w as (
+        partition by customer_id
+        order by
+            payment_date
+    )
 ```
 
 # 2. SQL Window Function Part 2
@@ -227,24 +215,6 @@ select p.*, first_value(product_name) over(partition by product_category order b
 from product p
 ```
 
-Example from DVD rental data:
-
-```sql
-select distinct(customer_id), first_value(payment_id) over(partition by customer_id order by amount desc) as most_exp_payment
-from payment p
-order by customer_id
-```
-
-This window function does the same as the following `group by` and aggregate function.
-
-```sql
-select customer_id, payment_id
-from payment p
-group by customer_id, payment_id
-having amount = max(amount)
-order by customer_id
-```
-
 Task: Write a query to display the least expensive product under each category (corresponding to each record)
 
 ```sql
@@ -254,9 +224,26 @@ from product
 
 This delivers the wrong result! The reason is the default **frame clause**.
 
+Note: Ideally we would use the `rank()` window function to accomplish this task. For example: 
+
+```sql
+with rk as 
+(
+	select
+	payment_id, customer_id, amount, 
+	rank() over (partition by customer_id order by amount asc) from payment
+)
+
+select * 
+from rk
+where rank = 1
+order by customer_id
+```
+
+
 ## 2.2. Frame Clause
 
-Note that `first_value`, `last_value`, and `nth_value` consider only the rows within the "*window frame*", which by default contains the rows from the start of the partition through the last peer of the current row. This is likely to give unhelpful results for last_value and sometimes also nth_value. You can redefine the frame by adding a suitable frame specification (RANGE or ROWS) to the OVER clause. See Section 4.2.8 for more information about frame specifications. The default frame clause is:
+Note that `first_value`, `last_value`, and `nth_value` consider only the rows within the "*window frame*", which by default contains the rows from the start of the partition through the last peer of the current row. This is likely to give unhelpful results for last_value and sometimes also nth_value. You can redefine the frame by adding a suitable frame specification (`RANGE` or `ROWS`) to the `OVER` clause. See Section 4.2.8 for more information about frame specifications. The default frame clause is:
 
 ```sql
 select
@@ -297,7 +284,7 @@ select
 from product p
 ```
 
-This alternative becomes relevant when we have duplicates. `rows` considers the current row while `range` considers the last row of all duplicate values. We can also specify the number of rows:
+This alternative becomes relevant when we have duplicates. `rows` considers the exact current row while `range` considers the last row of all duplicate values. `range` allows the current row to see ahead of itself into the last row with a duplicate value. We can also specify the number of rows:
 
 ```sql
 select
@@ -341,7 +328,7 @@ window w as (partition by product_category order by price desc range between unb
 
 ## 2.4. N-th Value
 
-Fetch a value from any particular position. Task: Write a query to display the second most expensive product under each category.
+Fetch a value from any particular position. Task: Write a query to display the second most expensive product under each category. Note that `dense_rank()` is a better option here. 
 
 ```sql
 select
@@ -367,7 +354,7 @@ Task: Write a query to segregate all the expensive phones, mid range and the che
 with phone_bucket as (
   select
     *,
-    ntile(3) over w as bucket
+    ntile(3) over (order by price desc) as bucket
   from product
   where product_category = 'Phone'
 )
@@ -711,6 +698,29 @@ where
 order by e.dept_name, salary desc
 ```
 
+Alternative with categorical column and delta: 
+
+```sql
+with lh as 
+(select 
+	*, 
+	rank() over(partition by dept_name order by salary asc) as ls, 
+	rank() over(partition by dept_name order by salary desc) as hs
+from employee)
+
+select 
+	*, 
+	case
+		when ls = 1 then 'Lowest Salary in Dept'
+		else 'Highest Salary in Dept'
+	end as low_high, 
+	first_value(salary) over(partition by dept_name order by salary desc) - 
+	first_value(salary) over(partition by dept_name order by salary asc)
+	as delta
+from lh
+where ls = 1 or hs = 1 
+```
+
 ## 4.4. Exercise 4
 
 ```sql
@@ -743,119 +753,13 @@ insert into doctors values
 Solution:
 
 ```sql
-select d1.id, d1.name, d1.speciality, d1.hospital, d1.city, d1.consultation_fee
-from doctors d1 join doctors d2 on d1.hospital = d2.hospital and d1.speciality != d2.speciality
+select l.* 
+from doctors l join doctors r on 
+	l.hospital = r.hospital and
+	l.speciality != r.speciality
 ```
 
 ## 4.5. Exercise 5
-
-```sql
--- Query 5:
-
--- From the login_details table, fetch the users who logged in consecutively 3 or more times.
-
---Table Structure:
-
--- drop table login_details;
-create table login_details(
-login_id int primary key,
-user_name varchar(50) not null,
-login_date date);
-
-delete from login_details;
-insert into login_details values
-(101, 'Michael', current_date),
-(102, 'James', current_date),
-(103, 'Stewart', current_date+1),
-(104, 'Stewart', current_date+1),
-(105, 'Stewart', current_date+1),
-(106, 'Jimmy', current_date+2),
-(107, 'Michael', current_date+2),
-(108, 'Stewart', current_date+3),
-(109, 'Stewart', current_date+3),
-(110, 'James', current_date+4),
-(111, 'James', current_date+4),
-(112, 'James', current_date+5),
-(113, 'James', current_date+6);
-```
-
-Solution:
-
-```sql
-with l as (
-	select *, lag(user_name) over w as prev_user1, lag(user_name,2) over w as prev_user2
-	from login_details
-	window w as (order by login_date, login_id)
-)
-
-select *
-from l
-where user_name = prev_user1 and prev_user1 = prev_user2
-```
-
-Alternative solution:
-
-```sql
-with rep as (
-	select
-		*,
-		case
-			when lag(user_name) over (order by login_date) = user_name then 'repeat'
-			else 'not repeat'
-		end as rep
-	from login_details
-), cume_rep as (
-	select
-		*,
-		case
-			when rep = 'repeat' and lag(rep) over (order by login_date) = rep then 1
-			else 0
-		end as cume_rep
-	from rep
-)
-
-select *
-from cume_rep
-where cume_rep = 1
-```
-
-Better alternative solution. This solution also counts the number of consecutive logins by the user.
-
-```sql
-with rep as (
-	select
-		*,
-		case
-			when lag(user_name) over(order by login_date) = user_name then 1
-			else 0
-		end as rep
-	from login_details
-), island_head as (
-	select
-		*,
-		case
-			when
-				rep = 0 and lead(rep) over(order by login_date) = 1 then login_id
-		end as island_head
-	from rep
-), island_id as(
-	select
-		*,
-		case
-			when rep = 1 then max(island_head) over(order by login_date)
-			when rep = 0 then island_head
-		end as island_id
-	from island_head
-)
-
-select
-	*,
-	count(island_id) over(partition by island_id order by login_date rows between unbounded preceding and unbounded following)
-from island_id
-order by login_date, island_head
-```
-
-## 4.6. Exercise 5
 
 ```sql
 -- Query 5:
@@ -1004,7 +908,7 @@ group by island_id, consecutive_logins, user_name
 order by island_id
 ```
 
-## 4.7. Exercise 6
+## 4.6. Exercise 6
 
 ```sql
 -- Query 6:
@@ -1040,7 +944,7 @@ select
 from students
 ```
 
-## 4.8. Exercise 7
+## 4.7. Exercise 7
 
 ```sql
 -- Query 7:
@@ -1075,14 +979,13 @@ Solution:
 ```sql
 with
 streak as (
-  select *,
+  select 
+	*,
 	case
-		when temperature < 0 and lag(temperature) over (order by id) >= 0 then id -- head (does consider first record)
-		when temperature < 0 and lead(temperature) over (order by id) < 0 then 1 -- body
-		when temperature < 0 and lead(temperature) over (order by id) >= 0 then 1 -- tail
+		when temperature < 0 and lag(temperature) over (order by id) >= 0 then id
 		when temperature < 0 then 1 --handles the last record
 	end as streak
-  from weather),
+from weather),
 island_id as (
 	select
 		*,
@@ -1103,7 +1006,7 @@ where island_size >= 3
 order by id
 ```
 
-## 4.9. Exercise 9
+## 4.8. Exercise 9
 
 We skipped exercise 9 because the task was not clear.
 
@@ -1215,6 +1118,26 @@ WHERE schemaname != 'pg_catalog' AND
 - aggregate function appear in:
   - `select` OR
   - `having`
+
+## 5.2. General Syntax: 
+
+```sql 
+select
+	count distinct
+from 
+where
+	=<> 
+	is null
+	in ()
+	between x and y 
+	like 
+	ilike
+group by 
+having 
+order by 
+limit 
+offset
+```
 
 
 # 6. Solutions to Codility Exercise
