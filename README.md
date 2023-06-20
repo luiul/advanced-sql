@@ -150,21 +150,21 @@ SELECT sum(salary) OVER w, avg(salary) OVER w
 Task: Fetch a query to display if the salary of an employee is higher, lower or equal to the previous employee. **Preparation**:
 
 ```sql
-select e.*, lag(salary) over (partition over dept_name order by emp_id) as prev_emp_salary
+select e.*, lag(salary) over (partition by dept_name order by emp_id) as prev_emp_salary
 from employee e
 ```
 
 We can pass some other arguments with the lag function (see [Documentation](https://www.postgresql.org/docs/8.4/functions-window.html)).
 
 ```sql
-select e.*, lag(salary,2,0) over (partition over dept_name order by emp_id) as prev_emp_salary
+select e.*, lag(salary,2,0) over (partition by dept_name order by emp_id) as prev_emp_salary
 from employee e
 ```
 
 Lead gives us the rows that are following the current row.
 
 ```sql
-select e.*, lead(salary) over (partition over dept_name order by emp_id) as next_emp_salary
+select e.*, lead(salary) over (partition by dept_name order by emp_id) as next_emp_salary
 from employee e
 ```
 
@@ -180,7 +180,7 @@ select
     when e.salary = lag(salary) over w then 'Same as previous employee'
   end sal_range
 from employee e
-window w as (partition over dept_name order by emp_id)
+window w as (partition by dept_name order by emp_id)
 ```
 
 Another example from our database:
